@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TTC Bus Tracker | Shawn Nuguid</title>
+  <link rel="stylesheet" href="../../css/about-pages.css" />
+</head>
+<body>
+  <header>
+    <a class="logo" href="../../index.html">SHAWN<span>.DEV</span></a>
+    <nav>
+      <div class="nav-item">
+        <a class="nav-link" href="../about/who-i-am.html">About ▾</a>
+        <div class="dropdown-menu">
+          <a href="../about/who-i-am.html">Who I Am</a>
+          <a href="../about/experience-timeline.html">Experience Timeline</a>
+          <a href="../about/career-interests.html">Career Interests</a>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a class="nav-link" href="../../index.html#projects">Projects ▾</a>
+        <div class="dropdown-menu">
+          <a href="ttc-bus-tracker.html">TTC Bus Tracker</a>
+          <a href="securestore-ai.html">Securestore AI</a>
+          <a href="production-application.html">Production Application</a>
+          <a href="iverlog-alu.html">Iverlog ALU</a>
+          <a href="bluetooth-robotic-hand.html">Bluetooth Robotic Hand</a>
+          <a href="ai-applicant-tracker.html">AI Applicant Tracker</a>
+          <a href="home-server.html">Home Server</a>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a class="nav-link" href="../../index.html#resume">Resume ▾</a>
+        <div class="dropdown-menu">
+          <a href="../../index.html#resume">Resume Preview</a>
+          <a href="../../resume.pdf" target="_blank">Open Resume PDF</a>
+          <a href="../../resume.pdf" download>Download Resume</a>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a class="nav-link" href="../../index.html#experience">Experience ▾</a>
+        <div class="dropdown-menu">
+          <a href="../../index.html#experience">Pocket Clinic</a>
+          <a href="../../index.html#experience">TMU Intramurals</a>
+          <a href="../../index.html#experience">I Challenge Diabetes</a>
+          <a href="../../index.html#experience">TMU Recreation Clubs</a>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a class="nav-link" href="../../index.html#contact">Contact ▾</a>
+        <div class="dropdown-menu">
+          <a href="mailto:shawnnbiz@gmail.com">Email</a>
+          <a href="https://www.linkedin.com/in/shawnnuguid/" target="_blank">LinkedIn</a>
+          <a href="https://github.com/shawnn101" target="_blank">GitHub</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-section">
+      <div class="project-hero reveal">
+        <div class="project-hero-copy glass-card">
+          <div class="project-kicker">TTC</div>
+          <div class="section-label">Project Page</div>
+          <h1 class="section-title">TTC Bus Tracker</h1>
+          <p class="section-text">
+            A Raspberry Pi-based transit tracker that pulls TTC bus information and outputs route
+            details to an LCD through breadboard wiring for a specific area and selected stops.
+          </p>
+          <span class="project-status">Hardware Feature Built</span>
+          <div class="project-actions">
+            <a class="github-link" href="https://github.com/shawnn101/ttc_bus_tracker" target="_blank">View GitHub</a>
+          </div>
+        </div>
+        <div class="project-picture-frame">
+          <img src="TTC Map.jpg" alt="TTC bus tracker map preview" />
+        </div>
+      </div>
+
+      <div class="about-grid">
+        <div class="glass-card reveal">
+          <h3>Overview</h3>
+          <p>
+            This project connects software and hardware by collecting TTC route or stop information
+            and displaying useful bus updates on a physical LCD screen. The current version focuses
+            on a specific area, selected stops, a small set of routes, and nearby connecting subway
+            lines.
+          </p>
+        </div>
+        <div class="glass-card reveal">
+          <h3>Technical Focus</h3>
+          <p>
+            The project highlights Raspberry Pi setup, breadboard wiring, LCD display control,
+            API/data handling, and clean formatting for real-time transit information.
+          </p>
+        </div>
+        <div class="glass-card reveal">
+          <h3>Built Features</h3>
+          <ul>
+            <li>Collected TTC route or stop information for selected stops in a specific area.</li>
+            <li>Displayed transit information on an LCD module.</li>
+            <li>Connected the LCD to a Raspberry Pi using breadboard wiring.</li>
+            <li>Formatted a small set of bus routes and connecting subway lines for quick physical display output.</li>
+          </ul>
+        </div>
+        <div class="glass-card reveal">
+          <h3>Next Steps</h3>
+          <ul>
+            <li>Test tracker accuracy across the selected stops, routes, and connecting subway lines.</li>
+            <li>Add route calculation from point A to point B for supported areas.</li>
+            <li>Build a digital logger to verify record format, timestamp rollover, ordering, and buffer-full behavior.</li>
+            <li>Add a prediction wrapper test plan using request/response checks, timeout handling, safe defaults, and reference-model comparisons.</li>
+            <li>Run end-to-end traffic scenarios with sensor noise, missing data, route events, logged outputs, and predicted ETAs.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="page-actions reveal">
+        <a class="mini-link" href="../../index.html#projects">Back to projects -></a>
+      </div>
+    </section>
+  </main>
+
+  <footer>&copy; 2026 Shawn Nuguid | Personal Website</footer>
+  <script src="../../js/site-background.js"></script>
+</body>
+</html>

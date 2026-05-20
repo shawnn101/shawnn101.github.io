@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shawn Nuguid | Personal Website</title>
+
+  <style>
+    /* =========================================================
+       1. GLOBAL RESET + THEME VARIABLES
+       Edit colours here if you want to change the whole website.
+    ========================================================= */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    :root {
+      --bg-dark: #020711;
+      --nav-dark: rgba(2, 7, 17, 0.84);
+      --blue: #00d9ff;
+      --blue-soft: rgba(0, 217, 255, 0.14);
+      --text-soft: #cbd5e1;
+      --white: #ffffff;
+      --card-bg: rgba(255, 255, 255, 0.065);
+      --card-border: rgba(0, 217, 255, 0.22);
+
+      /* JavaScript updates these values based on cursor movement. */
+      --board-x: 0px;
+      --board-y: 0px;
+      --flow-x: 0px;
+      --flow-y: 0px;
+      --flow-angle: 0deg;
+      --electric-start: 0;
+      --electric-end: -520;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-snap-type: y mandatory;
+      scroll-padding-top: 76px;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg-dark);
+      color: var(--white);
+      overflow-x: hidden;
+      scroll-snap-type: y mandatory;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    /* =========================================================
+       2. REALISTIC PCB BACKGROUND
+       This section creates the circuit-board look.
+       There is NO cursor glow. Only the background reacts.
+    ========================================================= */
+    .pcb-background {
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 22%, rgba(0, 217, 255, 0.09), transparent 27%),
+        radial-gradient(circle at 82% 68%, rgba(0, 110, 255, 0.12), transparent 32%),
+        linear-gradient(135deg, #020817, #061a2b 45%, #020617);
+    }
+
+    /* PCB texture/grid layer */
+    .pcb-background::before {
+      content: "";
+      position: absolute;
+      inset: -80px;
+      opacity: 0.42;
+      background-image:
+        linear-gradient(rgba(0, 217, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 217, 255, 0.05) 1px, transparent 1px),
+        radial-gradient(circle, rgba(0, 217, 255, 0.16) 0 1px, transparent 2px);
+      background-size: 80px 80px, 80px 80px, 40px 40px;
+      transform: translate(calc(var(--board-x) * -0.25), calc(var(--board-y) * -0.25));
+      will-change: transform;
+    }
+
+    /* Larger PCB trace pattern layer */
+    .pcb-background::after {
+      content: "";
+      position: absolute;
+      inset: -100px;
+      opacity: 0.34;
+      background-image:
+        linear-gradient(90deg, transparent 0 118px, rgba(0, 217, 255, 0.16) 119px 123px, transparent 124px 240px),
+        linear-gradient(0deg, transparent 0 158px, rgba(0, 217, 255, 0.12) 159px 163px, transparent 164px 320px);
+      background-size: 240px 320px;
+      transform: translate(calc(var(--board-x) * 0.18), calc(var(--board-y) * 0.18));
+      will-change: transform;
+    }
+
+    /* SVG circuit board layer with chips, traces, pads, and vias */
+    .pcb-svg {
+      position: fixed;
+      inset: -40px;
+      width: calc(100% + 80px);
+      height: calc(100% + 80px);
+      z-index: -8;
+      opacity: 0.72;
+      pointer-events: none;
+      transform: translate(calc(var(--board-x) * 0.35), calc(var(--board-y) * 0.35));
+      will-change: transform;
+    }
+
+    .pcb-trace {
+      fill: none;
+      stroke: rgba(0, 217, 255, 0.32);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 5px rgba(0, 217, 255, 0.35));
+    }
+
+    .pcb-thin-trace {
+      fill: none;
+      stroke: rgba(0, 217, 255, 0.20);
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .pcb-pad {
+      fill: rgba(0, 217, 255, 0.23);
+      stroke: rgba(0, 217, 255, 0.45);
+      stroke-width: 1.5;
+      filter: drop-shadow(0 0 5px rgba(0, 217, 255, 0.45));
+    }
+
+    .pcb-chip {
+      fill: rgba(8, 22, 41, 0.78);
+      stroke: rgba(0, 217, 255, 0.30);
+      stroke-width: 1.5;
+      filter: drop-shadow(0 0 14px rgba(0, 217, 255, 0.15));
+    }
+
+    .pcb-pin {
+      fill: rgba(0, 217, 255, 0.38);
+    }
+
+    /* Electricity that travels directly through the PCB traces */
+    .electric-flow {
+      fill: none;
+      stroke: #7ff7ff;
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 55 420;
+      filter: drop-shadow(0 0 10px rgba(0, 217, 255, 1));
+      opacity: 0.95;
+      animation: flowAlongTrace 2.4s linear infinite;
+    }
+
+    .electric-flow.fast {
+      animation-duration: 1.8s;
+    }
+
+    .electric-flow.slow {
+      animation-duration: 3.2s;
+    }
+
+    .electric-flow.reverse {
+      animation-direction: reverse;
+    }
+
+    @keyframes flowAlongTrace {
+      from {
+        stroke-dashoffset: var(--electric-start, 0);
+      }
+      to {
+        stroke-dashoffset: var(--electric-end, -520);
+      }
+    }
+
+    /* =========================================================
+       3. TOP NAVIGATION BAR
+       Edit dropdown labels and links here.
+    ========================================================= */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 76px;
+      padding: 0 7%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--nav-dark);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(0, 217, 255, 0.18);
+      z-index: 50;
+    }
+
+    .logo {
+      font-weight: 800;
+      letter-spacing: 1px;
+      font-size: 1.1rem;
+    }
+
+    .logo span {
+      color: var(--blue);
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-item {
+      position: relative;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 13px 16px;
+      color: var(--text-soft);
+      font-size: 0.95rem;
+      transition: 0.25s ease;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .nav-link:hover {
+      color: var(--blue);
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 105%;
+      left: 0;
+      min-width: 220px;
+      background: rgba(4, 12, 28, 0.96);
+      border: 1px solid rgba(0, 217, 255, 0.22);
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35), 0 0 24px rgba(0, 217, 255, 0.08);
+      opacity: 0;
+      transform: translateY(12px);
+      visibility: hidden;
+      transition: 0.25s ease;
+    }
+
+    .nav-item:hover .dropdown-menu {
+      opacity: 1;
+      transform: translateY(0);
+      visibility: visible;
+    }
+
+    .dropdown-menu a {
+      display: block;
+      padding: 11px 12px;
+      color: #dbeafe;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      transition: 0.2s;
+      text-decoration: none;
+    }
+
+    .dropdown-menu a:hover {
+      background: var(--blue-soft);
+      color: var(--blue);
+      padding-left: 16px;
+    }
+
+    /* =========================================================
+       4. SHARED SECTION STYLES
+       These apply to every scrollable section.
+    ========================================================= */
+    .page-section {
+      min-height: 100vh;
+      padding: 120px 7% 80px;
+      position: relative;
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+
+    .landing {
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+
+    .section-header {
+      max-width: 780px;
+      margin: 0 auto 42px;
+      text-align: center;
+    }
+
+    .section-label {
+      color: var(--blue);
+      text-transform: uppercase;
+      font-size: 0.82rem;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      margin-bottom: 16px;
+    }
+
+    .section-text {
+      color: var(--text-soft);
+      font-size: 1.03rem;
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 40px rgba(0, 217, 255, 0.06);
+    }
+
+    .glass-card h3 {
+      color: var(--blue);
+      margin-bottom: 12px;
+      font-size: 1.25rem;
+    }
+
+    .glass-card p,
+    .glass-card li {
+      color: #dbeafe;
+      line-height: 1.7;
+      font-size: 0.98rem;
+    }
+
+    .glass-card ul {
+      margin-left: 18px;
+      margin-top: 12px;
+    }
+
+    .tech-divider {
+      height: 120px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tech-divider::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 80%;
+      height: 1px;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+      box-shadow: 0 0 22px rgba(0, 217, 255, 0.7);
+    }
+
+    .tech-divider::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 16px;
+      height: 16px;
+      transform: translate(-50%, -50%) rotate(45deg);
+      border: 2px solid var(--blue);
+      background: #030712;
+      box-shadow: 0 0 25px rgba(0, 217, 255, 0.9);
+      animation: dividerPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes dividerPulse {
+      0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) rotate(45deg) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) rotate(45deg) scale(1.35); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(34px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* =========================================================
+       5. LANDING / HERO SECTION
+       Main first screen.
+    ========================================================= */
+    .landing {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 130px 7% 80px;
+      text-align: center;
+    }
+
+    .hero-content {
+      max-width: 950px;
+      padding: 50px 30px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border: 1px solid rgba(0, 217, 255, 0.22);
+      box-shadow: 0 0 50px rgba(0, 217, 255, 0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .small-label {
+      display: inline-block;
+      color: var(--blue);
+      border: 1px solid rgba(0, 217, 255, 0.35);
+      background: rgba(0, 217, 255, 0.08);
+      padding: 8px 14px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(2.7rem, 7vw, 6.3rem);
+      line-height: 1;
+      margin-bottom: 18px;
+      letter-spacing: 2px;
+    }
+
+    h1 span {
+      color: var(--blue);
+      text-shadow: 0 0 30px rgba(0, 217, 255, 0.7);
+    }
+
+    .subtitle {
+      font-size: clamp(1rem, 2vw, 1.3rem);
+      color: var(--text-soft);
+      max-width: 760px;
+      margin: 0 auto 32px;
+    }
+
+    .hero-buttons,
+    .contact-links,
+    .resume-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .btn {
+      text-decoration: none;
+      padding: 14px 24px;
+      border-radius: 999px;
+      font-weight: 700;
+      transition: 0.25s ease;
+      letter-spacing: 0.4px;
+      display: inline-block;
+    }
+
+    .primary-btn {
+      background: var(--blue);
+      color: #03101c;
+      box-shadow: 0 0 25px rgba(0, 217, 255, 0.35);
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 35px rgba(0, 217, 255, 0.7);
+    }
+
+    .outline-btn {
+      border: 1px solid rgba(0, 217, 255, 0.55);
+      color: var(--blue);
+    }
+
+    .outline-btn:hover {
+      background: rgba(0, 217, 255, 0.12);
+      transform: translateY(-3px);
+    }
+
+    .status-row {
+      margin-top: 36px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .status-card {
+      min-width: 170px;
+      padding: 14px 18px;
+      border: 1px solid rgba(0, 217, 255, 0.18);
+      background: rgba(0, 217, 255, 0.055);
+      border-radius: 16px;
+      color: #dbeafe;
+      font-size: 0.9rem;
+    }
+
+    .status-card strong {
+      display: block;
+      color: var(--blue);
+      margin-bottom: 4px;
+    }
+
+    /* =========================================================
+       6. ABOUT SECTION
+    ========================================================= */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .metric {
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(0, 217, 255, 0.08);
+      border: 1px solid rgba(0, 217, 255, 0.18);
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--blue);
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+    }
+
+    .metric span {
+      color: var(--text-soft);
+      font-size: 0.9rem;
+    }
+
+    /* =========================================================
+       7. RESUME PREVIEW SECTION
+       Put your PDF beside index.html and name it resume.pdf.
+    ========================================================= */
+    .resume-layout {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 28px;
+      max-width: 1150px;
+      margin: 0 auto;
+      align-items: start;
+    }
+
+    .resume-actions {
+      justify-content: flex-start;
+      margin-top: 22px;
+    }
+
+    .resume-card {
+      align-self: start;
+      padding: 24px;
+    }
+
+    .resume-preview {
+      min-height: 540px;
+      border-radius: 24px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(0, 217, 255, 0.28);
+      box-shadow: 0 0 50px rgba(0, 217, 255, 0.08);
+    }
+
+    .resume-preview iframe {
+      width: 100%;
+      height: 100%;
+      min-height: 540px;
+      border: none;
+      background: white;
+    }
+
+    /* =========================================================
+       8. PROJECT + EXTRA PREVIEW CARDS
+    ========================================================= */
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      max-width: 1150px;
+      margin: 0 auto;
+    }
+
+    .preview-card {
+      min-height: 280px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 24px;
+      backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .preview-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0, 217, 255, 0.18), transparent 45%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .preview-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(0, 217, 255, 0.5);
+      box-shadow: 0 0 35px rgba(0, 217, 255, 0.12);
+    }
+
+    .preview-card:hover::before {
+      opacity: 1;
+    }
+
+    .preview-card-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .preview-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(0, 217, 255, 0.35);
+      background: rgba(0, 217, 255, 0.1);
+      color: var(--blue);
+      margin-bottom: 18px;
+      font-weight: 800;
+    }
+
+    .preview-card h3 {
+      margin-bottom: 12px;
+      color: white;
+    }
+
+    .preview-card p {
+      color: var(--text-soft);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    .mini-link {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    /* =========================================================
+       9. EXPERIENCE TIMELINE SECTION
+    ========================================================= */
+    .timeline {
+      max-width: 950px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 22px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--blue), transparent);
+      box-shadow: 0 0 18px rgba(0, 217, 255, 0.7);
+    }
+
+    .timeline-item {
+      position: relative;
+      padding-left: 64px;
+      margin-bottom: 28px;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: 13px;
+      top: 6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.9);
+    }
+
+    .timeline-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 22px;
+      backdrop-filter: blur(12px);
+    }
+
+    .timeline-card h3 {
+      color: white;
+      margin-bottom: 6px;
+    }
+
+    .timeline-card .date {
+      color: var(--blue);
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .timeline-card p {
+      color: var(--text-soft);
+      line-height: 1.6;
+    }
+
+    /* =========================================================
+       10. CONTACT SECTION
+    ========================================================= */
+    .contact-panel {
+      max-width: 850px;
+      margin: 0 auto;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(0, 217, 255, 0.14), rgba(255,255,255,0.04));
+      border: 1px solid rgba(0, 217, 255, 0.28);
+      border-radius: 28px;
+      padding: 44px 28px;
+      backdrop-filter: blur(12px);
+    }
+
+    .contact-links {
+      margin-top: 28px;
+    }
+
+    footer {
+      text-align: center;
+      color: #64748b;
+      font-size: 0.82rem;
+      padding: 28px 20px;
+      background: rgba(3, 7, 18, 0.75);
+      border-top: 1px solid rgba(0, 217, 255, 0.14);
+    }
+
+    /* =========================================================
+       11. RESPONSIVE DESIGN
+    ========================================================= */
+    @media (max-width: 950px) {
+      .about-grid,
+      .resume-layout,
+      .preview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .resume-preview,
+      .resume-preview iframe {
+        min-height: 520px;
+      }
+    }
+
+    @media (max-width: 850px) {
+      header {
+        height: auto;
+        min-height: 76px;
+        flex-direction: column;
+        padding: 16px 5%;
+        gap: 10px;
+      }
+
+      nav {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .dropdown-menu {
+        left: 50%;
+        transform: translate(-50%, 12px);
+      }
+
+      .nav-item:hover .dropdown-menu {
+        transform: translate(-50%, 0);
+      }
+
+      .landing {
+        padding-top: 190px;
+      }
+
+      .page-section {
+        padding-top: 150px;
+      }
+
+      .hero-content {
+        padding: 38px 22px;
+      }
+    }
+
+    @media (max-width: 550px) {
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .status-card {
+        width: 100%;
+      }
+
+      .nav-link {
+        padding: 10px 11px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- =========================================================
+       BACKGROUND LAYERS
+       These are decorative. They sit behind the website content.
+  ========================================================= -->
+  <div class="pcb-background"></div>
+
+  <!-- SVG circuit board: traces, chips, pads, and vias -->
+  <svg class="pcb-svg" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">
+    <path class="pcb-trace" d="M0 320 H250 V185 H410 V260 H610" />
+    <path class="pcb-trace" d="M1600 150 H1320 V70 H1170 V180 H1010" />
+    <path class="pcb-trace" d="M0 710 H180 V640 H360 V745 H540" />
+    <path class="pcb-trace" d="M1600 690 H1410 V760 H1220 V640 H990" />
+    <path class="pcb-trace" d="M670 0 V190 H780 V315 H930" />
+    <path class="pcb-trace" d="M840 900 V715 H720 V590 H520" />
+
+    <path class="pcb-thin-trace" d="M120 90 H330 V130 H460" />
+    <path class="pcb-thin-trace" d="M1180 430 H1360 V500 H1490" />
+    <path class="pcb-thin-trace" d="M240 515 H420 V455 H610" />
+    <path class="pcb-thin-trace" d="M1060 810 H1210 V720 H1380" />
+
+    <rect class="pcb-chip" x="980" y="80" width="150" height="115" rx="12" />
+    <rect class="pcb-chip" x="110" y="655" width="150" height="115" rx="12" />
+    <rect class="pcb-chip" x="1260" y="565" width="170" height="130" rx="12" />
+
+    <g>
+      <rect class="pcb-pin" x="985" y="205" width="12" height="8" />
+      <rect class="pcb-pin" x="1008" y="205" width="12" height="8" />
+      <rect class="pcb-pin" x="1031" y="205" width="12" height="8" />
+      <rect class="pcb-pin" x="1054" y="205" width="12" height="8" />
+      <rect class="pcb-pin" x="1077" y="205" width="12" height="8" />
+      <rect class="pcb-pin" x="1100" y="205" width="12" height="8" />
+    </g>
+
+    <g>
+      <rect class="pcb-pin" x="115" y="780" width="12" height="8" />
+      <rect class="pcb-pin" x="138" y="780" width="12" height="8" />
+      <rect class="pcb-pin" x="161" y="780" width="12" height="8" />
+      <rect class="pcb-pin" x="184" y="780" width="12" height="8" />
+      <rect class="pcb-pin" x="207" y="780" width="12" height="8" />
+      <rect class="pcb-pin" x="230" y="780" width="12" height="8" />
+    </g>
+
+    <circle class="pcb-pad" cx="250" cy="320" r="8" />
+    <circle class="pcb-pad" cx="410" cy="185" r="8" />
+    <circle class="pcb-pad" cx="610" cy="260" r="8" />
+    <circle class="pcb-pad" cx="1320" cy="150" r="8" />
+    <circle class="pcb-pad" cx="1170" cy="70" r="8" />
+    <circle class="pcb-pad" cx="1010" cy="180" r="8" />
+    <circle class="pcb-pad" cx="360" cy="640" r="8" />
+    <circle class="pcb-pad" cx="540" cy="745" r="8" />
+    <circle class="pcb-pad" cx="1410" cy="690" r="8" />
+    <circle class="pcb-pad" cx="1220" cy="760" r="8" />
+    <circle class="pcb-pad" cx="990" cy="640" r="8" />
+    <circle class="pcb-pad" cx="780" cy="190" r="8" />
+    <circle class="pcb-pad" cx="930" cy="315" r="8" />
+
+    <!-- Animated electricity travelling through the same PCB traces above -->
+    <path class="electric-flow fast" d="M0 320 H250 V185 H410 V260 H610" />
+    <path class="electric-flow slow reverse" d="M1600 150 H1320 V70 H1170 V180 H1010" />
+    <path class="electric-flow" d="M0 710 H180 V640 H360 V745 H540" />
+    <path class="electric-flow fast reverse" d="M1600 690 H1410 V760 H1220 V640 H990" />
+    <path class="electric-flow slow" d="M670 0 V190 H780 V315 H930" />
+    <path class="electric-flow reverse" d="M840 900 V715 H720 V590 H520" />
+
+    <path class="electric-flow slow" d="M120 90 H330 V130 H460" />
+    <path class="electric-flow fast reverse" d="M1180 430 H1360 V500 H1490" />
+    <path class="electric-flow" d="M240 515 H420 V455 H610" />
+    <path class="electric-flow reverse" d="M1060 810 H1210 V720 H1380" />
+  </svg>
+
+  <!-- Electricity is now animated inside the SVG circuit traces above. -->
+
+  <!-- =========================================================
+       TOP NAVIGATION BAR
+       Edit the dropdown links here.
+  ========================================================= -->
+  <header>
+    <div class="logo">SHAWN<span>.DEV</span></div>
+
+    <nav>
+      <div class="nav-item">
+        <a class="nav-link" href="pages/about/who-i-am.html">About ▾</a>
+        <div class="dropdown-menu">
+          <a href="pages/about/who-i-am.html">Who I Am</a>
+          <a href="pages/about/experience-timeline.html">Experience Timeline</a>
+          <a href="pages/about/career-interests.html">Career Interests</a>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" href="#projects">Projects ▾</a>
+        <div class="dropdown-menu">
+          <a href="pages/projects/ttc-bus-tracker.html">TTC Bus Tracker</a>
+          <a href="pages/projects/securestore-ai.html">Securestore AI</a>
+          <a href="pages/projects/production-application.html">Production Application</a>
+          <a href="pages/projects/iverlog-alu.html">Iverlog ALU</a>
+          <a href="pages/projects/bluetooth-robotic-hand.html">Bluetooth Robotic Hand</a>
+          <a href="pages/projects/ai-applicant-tracker.html">AI Applicant Tracker</a>
+          <a href="pages/projects/home-server.html">Home Server</a>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" href="#resume">Resume ▾</a>
+        <div class="dropdown-menu">
+          <a href="#resume">Resume Preview</a>
+          <a href="resume.pdf" target="_blank">Open Resume PDF</a>
+          <a href="resume.pdf" download>Download Resume</a>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" href="#experience">Experience ▾</a>
+        <div class="dropdown-menu">
+          <a href="#experience">Pocket Clinic</a>
+          <a href="#experience">TMU Intramurals</a>
+          <a href="#experience">I Challenge Diabetes</a>
+          <a href="#experience">TMU Recreation Clubs</a>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" href="#contact">Contact ▾</a>
+        <div class="dropdown-menu">
+          <a href="mailto:shawnnbiz@gmail.com">Email</a>
+          <a href="https://www.linkedin.com/in/shawnnuguid/" target="_blank">LinkedIn</a>
+          <a href="https://github.com/shawnn101" target="_blank">GitHub</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- =========================================================
+       MAIN PAGE CONTENT
+  ========================================================= -->
+  <main>
+    <!-- ===================== LANDING / HERO SECTION ===================== -->
+    <section class="landing" id="home">
+      <div class="hero-content reveal">
+        <div class="small-label">Computer Engineering Portfolio</div>
+        <h1>Shawn <span>Nuguid</span></h1>
+        <p class="subtitle">
+          Innovation, initiative, and opportunity.
+        </p>
+
+        <div class="hero-buttons">
+          <a href="#resume" class="btn primary-btn">View Resume</a>
+          <a href="#projects" class="btn outline-btn">Explore Projects</a>
+        </div>
+
+        <div class="status-row">
+          <div class="status-card">
+            <strong>Previous</strong>
+            Hardware Design and Validation Engineer	
+          </div>
+          
+          <div class="status-card">
+            <strong>Current</strong>
+               Senior Adminstraitive Lead
+          </div>
+          <div class="status-card">
+            <strong>Location</strong>
+            Toronto, ON
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tech-divider"></div>
+
+    <!-- ===================== ABOUT SECTION ===================== -->
+    <section class="page-section" id="about">
+      <div class="section-header reveal">
+        <div class="section-label">System Overview</div>
+        <h2 class="section-title">About Me</h2>
+        <p class="section-text">
+          A quick preview of who I am before visitors move deeper into the site...
+        </p>
+      </div>
+
+      <div class="about-grid">
+        <div class="glass-card reveal">
+          <h3>Computer Engineering Student @ TMU</h3>
+          <p>
+            I am a Computer Engineering student interested in building systems that combine
+            hardware, software, automation, and data. My experience includes hardware validation,
+            embedded communication testing, PCB design checks, REST APIs, and internal tools that support
+            decision making.
+          </p>
+          <ul>
+            <li>Hardware validation and I2C/SPI test automation</li>
+            <li>Software tools using Python, TypeScript, SQL, and Node.js</li>
+            <li>Technical documentation and debugging across hardware/software systems</li>
+          </ul>
+        </div>
+
+        <div class="glass-card reveal">
+          <h3>Quick Highlights</h3>
+          <div class="metric-grid">
+            <div class="metric">
+              <strong>95%</strong>
+              <span>Protocol coverage improvement</span>
+            </div>
+            <div class="metric">
+              <strong>70%</strong>
+              <span>Screening speed improvement</span>
+            </div>
+            <div class="metric">
+              <strong>1000+</strong>
+              <span>User and Parents supported with data access</span>
+            </div>
+            <div class="metric">
+              <strong>3+</strong>
+              <span>Hardware/software roles</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tech-divider"></div>
+
+    <!-- ===================== RESUME PREVIEW SECTION ===================== -->
+    <section class="page-section" id="resume">
+      <div class="section-header reveal">
+        <div class="section-label">Document Preview</div>
+        <h2 class="section-title">Resume Preview</h2>
+        <p class="section-text">
+          Place your resume PDF in the same folder as this file and name it <strong>resume.pdf</strong>.
+          The preview box below will automatically load it.
+        </p>
+      </div>
+
+      <div class="resume-layout">
+        <div class="glass-card resume-card reveal">
+          <h3>Resume Snapshot</h3>
+          <p>
+            This section provides a summarized preview of my resume, highlighting my experience
+            across hardware validation, embedded systems, software development, automation,
+            and data-driven tools. The full resume preview on the right includes more detailed
+            information about my work with PCB validation, I2C/SPI testbenches, firmware
+            debugging, REST APIs, Supabase workflows, and AI-powered internal tools.
+          </p>
+
+          
+
+          <div class="resume-actions">
+            <a class="btn primary-btn" href="resume.pdf" target="_blank">Open Resume</a>
+            <a class="btn outline-btn" href="resume.pdf" download>Download PDF</a>
+          </div>
+        </div>
+
+        <div class="resume-preview reveal">
+          <iframe src="resume.pdf" title="Resume Preview"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <div class="tech-divider"></div>
+
+    <!-- ===================== PROJECT PREVIEW SECTION ===================== -->
+    <section class="page-section" id="projects">
+      <div class="section-header reveal">
+        <div class="section-label">Project Modules</div>
+        <h2 class="section-title">Project Previews</h2>
+        <p class="section-text">
+          A focused look at tools I have built across AI-assisted workflows, data systems,
+          embedded validation, and web development.
+        </p>
+      </div>
+
+      <div class="preview-grid">
+        <div class="preview-card reveal">
+          <div class="preview-card-content">
+            <div class="preview-icon">AI</div>
+            <h3>AI Applicant Tracker</h3>
+            <p>
+              A Python-based internal tool that ranks applicants based on job-fit and team-fit criteria
+              to support faster hiring review.
+            </p>
+            <a class="mini-link" href="pages/projects/ai-applicant-tracker.html">View project →</a>
+          </div>
+        </div>
+
+        <div class="preview-card reveal">
+          <div class="preview-card-content">
+            <div class="preview-icon">RH</div>
+            <h3>Bluetooth Robotic Hand</h3>
+            <p>
+              An Arduino-powered robotic hand built with servos and flex sensors to help patients
+              with limited hand mobility clutch and hold objects more easily.
+            </p>
+            <a class="mini-link" href="pages/projects/bluetooth-robotic-hand.html">View project →</a>
+          </div>
+        </div>
+
+        <div class="preview-card reveal">
+          <div class="preview-card-content">
+            <div class="preview-icon">HS</div>
+            <h3>[NEW] - Home Server</h3>
+            <p>
+              A Raspberry Pi-based home server for hosting personal files, with a custom RAM
+              module connected to the system for fast key storage and retrieval.
+            </p>
+            <a class="mini-link" href="pages/projects/home-server.html">View project →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tech-divider"></div>
+
+    <!-- ===================== EXPERIENCE TIMELINE SECTION ===================== -->
+    <section class="page-section" id="experience">
+      <div class="section-header reveal">
+        <div class="section-label">Signal Timeline</div>
+        <h2 class="section-title">Experience</h2>
+        <p class="section-text">
+          Technical roles where I built validation tools, data systems, automation workflows,
+          and dashboards across hardware, software, and operations.
+        </p>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item reveal">
+          <div class="timeline-dot"></div>
+          <div class="timeline-card">
+            <h3>Hardware Design and Validation Engineer</h3>
+            <div class="date">Pocket Clinic Inc. | Mar 2025 – May 2025</div>
+            <p>
+              Automated RFID-based I2C/SPI validation with Verilog/SystemVerilog testbenches,
+              developed C firmware and Python test tools, and validated PCB schematics and layouts
+              in KiCad to improve testing consistency and debugging speed.
+            </p>
+          </div>
+        </div>
+
+        <div class="timeline-item reveal">
+          <div class="timeline-dot"></div>
+          <div class="timeline-card">
+            <h3>Intramural Tech and Program Lead</h3>
+            <div class="date">TMU Intramural & Sport | May 2025 – May 2026</div>
+            <p>
+              Developed an AI-powered applicant tracking system, cleaned a 16,000+ user database,
+              and built Tableau dashboards to improve hiring workflows, data accuracy, and
+              sports-program decision making.
+            </p>
+          </div>
+        </div>
+
+        <div class="timeline-item reveal">
+          <div class="timeline-dot"></div>
+          <div class="timeline-card">
+            <h3>Software Developer</h3>
+            <div class="date">I Challenge Diabetes Camp | Jul 2025 – Sep 2025</div>
+            <p>
+              Built Supabase SQL pipelines, REST APIs, and TypeScript CSV validation tools to
+              structure camper records, reduce upload errors, and provide real-time access to
+              health information for families during camp.
+            </p>
+          </div>
+        </div>
+
+        <div class="timeline-item reveal">
+          <div class="timeline-dot"></div>
+          <div class="timeline-card">
+            <h3>Senior Administrative Lead</h3>
+            <div class="date">TMU Intramural Sports & Recreation Clubs | Current</div>
+            <p>
+              Managing administrative operations for intramural and recreation club programs, applying
+              the ATS workflow to support hiring and applicant tracking, and editing website content
+              to keep program information organized, accurate, and easy to access.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tech-divider"></div>
+
+    <!-- ===================== EXTRA FILES / CERTIFICATIONS SECTION ===================== -->
+    <section class="page-section" id="extras">
+      <div class="section-header reveal">
+        <div class="section-label">Technical Add-ons</div>
+        <h2 class="section-title">Supporting Work</h2>
+        <p class="section-text">
+          Additional materials that show my technical writing, certifications, lab work,
+          and hands-on engineering process.
+        </p>
+      </div>
+
+      <div class="preview-grid">
+        <div class="preview-card reveal">
+          <div class="preview-card-content">
+            <div class="preview-icon">DOC</div>
+            <h3>Technical Documentation</h3>
+            <p>Validation notes, setup guides, debugging records, and project writeups from hardware and software work.</p>
+            <a class="mini-link" href="#">View docs →</a>
+          </div>
+        </div>
+
+        <div class="preview-card reveal">
+          <div class="preview-card-content">
+            <div class="preview-icon">CC</div>
+            <h3>Certifications</h3>
+            <p>Add Cisco, networking, software, or hardware-related certifications here.</p>
+            <a class="mini-link" href="#">Add certificate →</a>
+          </div>
+        </div>
+
+        <div class="preview-card reveal">
+          <div class="preview-card-content">
+            <div class="preview-icon">LAB</div>
+            <h3>Lab Reports</h3>
+            <p>Add engineering reports, circuit work, validation notes, or school projects.</p>
+            <a class="mini-link" href="#">Add report →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tech-divider"></div>
+
+    <!-- ===================== CONTACT SECTION ===================== -->
+    <section class="page-section" id="contact">
+      <div class="contact-panel reveal">
+        <div class="section-label">Connect</div>
+        <h2 class="section-title">Contact Me</h2>
+        <p class="section-text">
+          Have a question or just want to get in contact? Feel free to send me an email
+          or connect with me through LinkedIn or GitHub.
+        </p>
+
+        <div class="contact-links">
+          <a class="btn primary-btn" href="mailto:shawnnbiz@gmail.com">Email Me</a>
+          <a class="btn outline-btn" href="https://www.linkedin.com/in/shawnnuguid/" target="_blank">LinkedIn</a>
+          <a class="btn outline-btn" href="https://github.com/shawnn101" target="_blank">GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================
+       FOOTER
+  ========================================================= -->
+  <footer>
+    © 2026 Shawn Nuguid | Personal Website
+  </footer>
+
+  <script>
+    /* =========================================================
+       CURSOR-DIRECTION ELECTRICITY CONTROL
+       No cursor glow is used.
+       The cursor movement controls background electricity direction.
+    ========================================================= */
+    const root = document.documentElement;
+
+    /*
+      Smooth performance setup:
+      - Mouse movement only saves target values.
+      - requestAnimationFrame updates the actual CSS variables.
+      - This avoids stutter from writing styles on every mouse event.
+    */
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let lastMouseX = mouseX;
+    let lastMouseY = mouseY;
+
+    let boardX = 0;
+    let boardY = 0;
+    let flowX = 0;
+    let flowY = 0;
+    let targetBoardX = 0;
+    let targetBoardY = 0;
+    let targetFlowX = 0;
+    let targetFlowY = 0;
+    let targetAngle = 0;
+
+    window.addEventListener("pointermove", (event) => {
+      mouseX = event.clientX;
+      mouseY = event.clientY;
+    }, { passive: true });
+
+    function animateElectricity() {
+      const deltaX = mouseX - lastMouseX;
+      const deltaY = mouseY - lastMouseY;
+
+      targetBoardX = (mouseX - window.innerWidth / 2) / 28;
+      targetBoardY = (mouseY - window.innerHeight / 2) / 28;
+
+      const strength = 24;
+      targetFlowX = Math.max(-strength, Math.min(strength, deltaX * 1.4));
+      targetFlowY = Math.max(-strength, Math.min(strength, deltaY * 1.4));
+
+      if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) {
+        targetAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+
+        const direction = deltaX + deltaY;
+        if (direction >= 0) {
+          root.style.setProperty("--electric-start", "0");
+          root.style.setProperty("--electric-end", "-520");
+        } else {
+          root.style.setProperty("--electric-start", "-520");
+          root.style.setProperty("--electric-end", "0");
+        }
+      }
+
+      boardX += (targetBoardX - boardX) * 0.08;
+      boardY += (targetBoardY - boardY) * 0.08;
+      flowX += (targetFlowX - flowX) * 0.16;
+      flowY += (targetFlowY - flowY) * 0.16;
+
+      targetFlowX *= 0.86;
+      targetFlowY *= 0.86;
+
+      root.style.setProperty("--board-x", boardX.toFixed(2) + "px");
+      root.style.setProperty("--board-y", boardY.toFixed(2) + "px");
+      root.style.setProperty("--flow-x", flowX.toFixed(2) + "px");
+      root.style.setProperty("--flow-y", flowY.toFixed(2) + "px");
+      root.style.setProperty("--flow-angle", targetAngle.toFixed(2) + "deg");
+
+      lastMouseX += (mouseX - lastMouseX) * 0.35;
+      lastMouseY += (mouseY - lastMouseY) * 0.35;
+
+      requestAnimationFrame(animateElectricity);
+    }
+
+    requestAnimationFrame(animateElectricity);
+
+    /* =========================================================
+       SCROLL REVEAL ANIMATION
+       Makes sections fade/slide in while scrolling.
+    ========================================================= */
+    const revealElements = document.querySelectorAll(".reveal");
+
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      },
+      { threshold: 0.14 }
+    );
+
+    revealElements.forEach((element) => {
+      revealObserver.observe(element);
+    });
+  </script>
+</body>
+</html>
